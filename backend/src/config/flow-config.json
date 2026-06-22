@@ -1,0 +1,85 @@
+{
+  "brand": {
+    "name": "KEA Wealth Management",
+    "description": "Gestão de patrimônio e private banking com soluções personalizadas",
+    "tone": "profissional e acolhedor",
+    "presentation_text": "Somos especialistas em gestão de patrimônio, ajudando nossos clientes a proteger, organizar e expandir seus investimentos com estratégias sob medida."
+  },
+  "services": [
+    { "id": "gestao_patrimonio", "label": "Gestão de Patrimônio", "description": "Gestão profissional da sua carteira de investimentos" },
+    { "id": "consultoria", "label": "Consultoria de Investimentos", "description": "Assessoria personalizada para suas decisões financeiras" },
+    { "id": "planejamento", "label": "Planejamento Financeiro", "description": "Plano estruturado para seus objetivos de curto, médio e longo prazo" },
+    { "id": "fundos_exclusivos", "label": "Fundos Exclusivos", "description": "Acesso a fundos de investimento com condições diferenciadas" },
+    { "id": "sucessao", "label": "Planejamento Sucessório", "description": "Estruturação patrimonial para transmissão de bens" }
+  ],
+  "stages": [
+    {
+      "id": "welcome",
+      "name": "Boas-vindas",
+      "prompt_instruction": "Apresente-se como assistente da KEA Wealth Management. Cumprimente o lead e pergunte o nome dele de forma natural.",
+      "fields_to_extract": ["name"],
+      "next": "presentation"
+    },
+    {
+      "id": "presentation",
+      "name": "Apresentar Produtos",
+      "prompt_instruction": "Apresente brevemente os serviços da KEA (listados no config). Pergunte qual deles desperta mais interesse no lead. Se o lead já mencionou algo, aprofunde nesse tópico.",
+      "fields_to_extract": ["interest", "interest_details"],
+      "next": "investor_profile"
+    },
+    {
+      "id": "investor_profile",
+      "name": "Perfil do Investidor",
+      "prompt_instruction": "Pergunte sobre a experiência do lead com investimentos e qual perfil melhor descreve ele: conservador (prioriza segurança), moderado (aceita risco controlado) ou agressivo (busca maior retorno).",
+      "fields_to_extract": ["investor_profile", "experience"],
+      "options": {
+        "investor_profile": ["conservador", "moderado", "agressivo"]
+      },
+      "next": "financial_goal"
+    },
+    {
+      "id": "financial_goal",
+      "name": "Objetivo Financeiro",
+      "prompt_instruction": "Descubra qual o objetivo financeiro do lead, o prazo (curto/médio/longo) e qual valor mensal ele pretende investir.",
+      "fields_to_extract": ["goal", "timeline", "monthly_value"],
+      "next": "contact_info"
+    },
+    {
+      "id": "contact_info",
+      "name": "Informações de Contato",
+      "prompt_instruction": "Confirme o telefone (já temos pelo WhatsApp) e pergunte se pode compartilhar o e-mail para enviar materiais complementares.",
+      "fields_to_extract": ["email", "allow_contact"],
+      "next": "qualification"
+    }
+  ],
+  "qualification": {
+    "required_fields": ["name", "interest", "investor_profile"],
+    "score_weights": {
+      "investor_profile": 2,
+      "monthly_value": 3,
+      "interest": 1,
+      "goal": 1
+    },
+    "min_score_to_qualify": 4,
+    "on_qualified": {
+      "message": "Excelente! Com base nas suas informações, vou preparar uma proposta personalizada de investimento para você. Aguarde só um instante... 📄",
+      "action": "generate_proposal",
+      "next": "proposal_ready"
+    },
+    "on_not_qualified": {
+      "message": "Obrigado pelas informações {name}! Um dos nossos especialistas entrará em contato em breve para entender melhor como podemos te ajudar.",
+      "action": "notify_team",
+      "next": "farewell"
+    }
+  },
+  "post_qualification": {
+    "proposal_ready": {
+      "id": "proposal_ready",
+      "prompt_instruction": "A proposta foi gerada! Informe o lead que o link da proposta personalizada será enviado em breve e que um especialista está disponível para tirar dúvidas."
+    },
+    "farewell": {
+      "id": "farewell",
+      "prompt_instruction": "Despeça-se de forma cordial e diga que em breve um especialista entrará em contato."
+    }
+  }
+}

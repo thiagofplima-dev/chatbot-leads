@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+backend/storage/propostas/*
+!backend/storage/propostas/.gitkeep
+.DS_Store

@@ -1,0 +1,58 @@
+{
+  "name": "Notificar Lead Qualificado",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Webhook - Notificar Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "parameters": {
+        "path": "notify-qualified-lead",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "webhookId": "notify-qualified-lead"
+    },
+    {
+      "id": "code-format",
+      "name": "Formatar Notificação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "parameters": {
+        "language": "javascript",
+        "code": "// Format notification data\nconst input = $input.first().json;\n\nreturn {\n  leadId: input.leadId,\n  phone: input.phone,\n  proposalUrl: input.proposalUrl,\n  notificationText: `🔔 Novo Lead Qualificado!\\n\\nLead #${input.leadId}\\nTelefone: ${input.phone}\\nProposta: ${input.proposalUrl || 'N/A'}`\n};"
+      }
+    },
+    {
+      "id": "respond-webhook",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [600, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Notificar Lead": {
+      "main": [
+        [{ "node": "Formatar Notificação", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatar Notificação": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "pinData": {},
+  "versionId": "1",
+  "active": false,
+  "settings": {},
+  "tags": []
+}

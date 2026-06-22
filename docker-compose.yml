@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # =============================================
+  # PostgreSQL Database
+  # =============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: chatbot-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: chatbot_leads
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =============================================
+  # n8n Workflow Automation
+  # =============================================
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: chatbot-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Database
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: chatbot_leads
+      DB_POSTGRESDB_USER: postgres
+      DB_POSTGRESDB_PASSWORD: postgres
+      # General
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      # Security
+      N8N_ENCRYPTION_KEY: changeme-n8n-encryption-key-2024
+      # Webhook URL for internal calls
+      WEBHOOK_URL: http://n8n:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/backup/workflows
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # =============================================
+  # Backend API (Node.js/TypeScript)
+  # =============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chatbot-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      # WhatsApp
+      WHATSAPP_TOKEN: "${WHATSAPP_TOKEN}"
+      WHATSAPP_PHONE_NUMBER_ID: "${WHATSAPP_PHONE_NUMBER_ID}"
+      WHATSAPP_VERIFY_TOKEN: "${WHATSAPP_VERIFY_TOKEN}"
+      WHATSAPP_API_VERSION: v21.0
+      # n8n (Docker internal network)
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: chatbot_leads
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # Notification
+      NOTIFICATION_TYPE: "${NOTIFICATION_TYPE:-database}"
+      NOTIFICATION_EMAIL_TO: "${NOTIFICATION_EMAIL_TO}"
+      NOTIFICATION_TELEGRAM_BOT_TOKEN: "${NOTIFICATION_TELEGRAM_BOT_TOKEN}"
+      NOTIFICATION_TELEGRAM_CHAT_ID: "${NOTIFICATION_TELEGRAM_CHAT_ID}"
+      NOTIFICATION_WEBHOOK_URL: "${NOTIFICATION_WEBHOOK_URL}"
+    volumes:
+      - proposal_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  postgres_data:
+  n8n_data:
+  proposal_storage:
