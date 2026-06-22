@@ -6,12 +6,16 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json ./
 
-# Install dependencies
-RUN npm ci --only=production && \
-    cp -R node_modules /prod_modules && \
-    npm ci
+# Install production dependencies
+RUN npm ci --omit=dev
+
+# Copy for runtime stage
+RUN cp -R node_modules /prod_modules
+
+# Install all dependencies (including dev) for build
+RUN npm ci
 
 # Copy source code
 COPY src/ ./src/
