@@ -19,6 +19,7 @@ export const config = {
     get baseUrl() {
       return `https://graph.facebook.com/${this.apiVersion}/${this.phoneNumberId}`;
     },
+    appSecret: process.env.WHATSAPP_APP_SECRET || '',
   },
 
   // n8n

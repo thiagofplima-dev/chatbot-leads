@@ -26,7 +26,8 @@ export function verifyWebhook(req: Request, res: Response): void {
  */
 export function verifySignature(req: Request, res: Response, next: NextFunction): void {
   // Skip signature verification in dev mode
-  if (config.isDev) {
+  if (config.isDev || !config.whatsapp.appSecret) {
+    console.log('⚠️ Skipping signature verification (dev mode or no app secret)');
     return next();
   }
 
@@ -37,9 +38,9 @@ export function verifySignature(req: Request, res: Response, next: NextFunction)
     return;
   }
 
-  const payload = JSON.stringify(req.body);
+  const payload = req.rawBody || JSON.stringify(req.body);
   const expectedSignature = crypto
-    .createHmac('sha256', config.whatsapp.token)
+    .createHmac('sha256', config.whatsapp.appSecret)
     .update(payload)
     .digest('hex');
 
