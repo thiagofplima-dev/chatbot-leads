@@ -28,6 +28,12 @@ export const config = {
     apiKey: process.env.N8N_API_KEY || '',
   },
 
+  // DeepSeek AI
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY || 'sk-948dd4228f944335bf1597c161a1fda1',
+    baseUrl: process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1',
+  },
+
   // PostgreSQL
   db: {
     host: process.env.DB_HOST || 'localhost',

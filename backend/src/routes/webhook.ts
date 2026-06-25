@@ -3,7 +3,7 @@ import { verifyWebhook, verifySignature } from '../middleware/auth';
 import { webhookRateLimit } from '../middleware/rateLimit';
 import { query } from '../db/connection';
 import { whatsappService } from '../services/whatsapp';
-import { n8nService } from '../services/n8n';
+import { deepseekService } from '../services/deepseek';
 
 const router = Router();
 
@@ -102,8 +102,8 @@ router.post('/', webhookRateLimit, verifySignature, async (req: Request, res: Re
       [leadId]
     );
 
-    // Send to n8n for AI processing
-    const n8nResponse = await n8nService.processMessage({
+    // Process with DeepSeek AI directly
+    const aiResponse = await deepseekService.processMessage({
       leadId,
       phone,
       leadName,
@@ -113,25 +113,25 @@ router.post('/', webhookRateLimit, verifySignature, async (req: Request, res: Re
       currentInterests: interestsResult.rows,
     });
 
-    if (n8nResponse) {
+    if (aiResponse) {
       // Save assistant response
       await query(
         `INSERT INTO conversations (lead_id, role, content, stage_id, metadata) VALUES ($1, 'assistant', $2, $3, $4)`,
-        [leadId, n8nResponse.message, n8nResponse.stage || null, JSON.stringify(n8nResponse.metadata || {})]
+        [leadId, aiResponse.message, aiResponse.stage || null, JSON.stringify(aiResponse.metadata || {})]
       );
 
       // Update lead info if extracted
-      if (n8nResponse.extractedData) {
-        await updateLeadData(leadId, n8nResponse.extractedData);
+      if (aiResponse.extractedData) {
+        await updateLeadData(leadId, aiResponse.extractedData);
       }
 
       // Handle qualification result
-      if (n8nResponse.qualified !== undefined) {
-        await handleQualification(leadId, n8nResponse);
+      if (aiResponse.qualified !== undefined) {
+        await handleQualification(leadId, aiResponse);
       }
 
       // Send response via WhatsApp
-      await whatsappService.sendText(phone, n8nResponse.message);
+      await whatsappService.sendText(phone, aiResponse.message);
     }
   } catch (error) {
     console.error('❌ Error processing webhook:', error);
