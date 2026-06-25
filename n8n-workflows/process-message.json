@@ -9,7 +9,7 @@
       "position": [0, 300],
       "parameters": {
         "path": "process-message",
-        "responseMode": "whenLastNodeFinishes",
+        "responseMode": "lastNode",
         "responseData": "allEntries",
         "options": {
           "rawBody": true
@@ -40,6 +40,12 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "deepSeekApi",
         "sendBody": true,
+        "credentials": {
+          "deepSeekApi": {
+            "id": "GvEYg2R1wUoftDvN",
+            "name": "DeepSeek"
+          }
+        },
         "bodyParameters": {
           "parameters": [
             { "name": "model", "value": "deepseek-chat" },
@@ -82,10 +88,10 @@
     },
     "Preparar Prompt": {
       "main": [
-        [{ "node": "DeepSeek - Processar", "type": "main", "index": 0 }]
+        [{ "node": "DeepSeek API", "type": "main", "index": 0 }]
       ]
     },
-    "DeepSeek - Processar": {
+    "DeepSeek API": {
       "main": [
         [{ "node": "Parsear Resposta", "type": "main", "index": 0 }]
       ]
