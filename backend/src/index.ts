@@ -10,6 +10,9 @@ import proposalRoutes from './routes/proposals';
 
 const app = express();
 
+// Trust proxy for Railway deployment (required for rate limiting behind reverse proxy)
+app.set('trust proxy', 1);
+
 // =============================================
 // Middleware
 // =============================================
