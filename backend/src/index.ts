@@ -18,7 +18,8 @@ app.set('trust proxy', 1);
 // =============================================
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
-app.use(globalRateLimit);
+// TEMP: rate limit disabled for debugging body parser issue
+// app.use(globalRateLimit);
 
 // Parse JSON bodies (but keep raw for webhook signature verification)
 app.use(express.json({
