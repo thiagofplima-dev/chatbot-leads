@@ -7,6 +7,7 @@ export const globalRateLimit = rateLimit({
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
 
 // WhatsApp webhook rate limit (stricter)
@@ -16,4 +17,5 @@ export const webhookRateLimit = rateLimit({
   message: { error: 'Too many webhook requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
 });
