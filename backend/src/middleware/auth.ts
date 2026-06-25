@@ -38,7 +38,7 @@ export function verifySignature(req: Request, res: Response, next: NextFunction)
     return;
   }
 
-  const payload = req.rawBody || JSON.stringify(req.body);
+  const payload = (req as any).rawBody || JSON.stringify(req.body);
   const expectedSignature = crypto
     .createHmac('sha256', config.whatsapp.appSecret)
     .update(payload)

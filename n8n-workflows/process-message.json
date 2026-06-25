@@ -37,14 +37,15 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.deepseek.com/v1/chat/completions",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "deepSeekApi",
+        "authentication": "none",
         "sendBody": true,
-        "credentials": {
-          "deepSeekApi": {
-            "id": "GvEYg2R1wUoftDvN",
-            "name": "DeepSeek"
-          }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-948dd4228f944335bf1597c161a1fda1"
+            }
+          ]
         },
         "bodyParameters": {
           "parameters": [
