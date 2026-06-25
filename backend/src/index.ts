@@ -26,6 +26,8 @@ app.use(express.json({
   verify: (req: any, _res, buf) => {
     req.rawBody = buf.toString();
   },
+  type: ['json', 'application/json', 'application/*+json'],
+  limit: '1mb',
 }));
 
 // =============================================
@@ -41,8 +43,23 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// WhatsApp webhook routes
-app.use('/webhook', webhookRoutes);
+// WhatsApp webhook routes - use raw body parser to avoid body-parser issues
+app.use('/webhook', 
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  (req: any, _res, next) => {
+    try {
+      if (req.body && Buffer.isBuffer(req.body)) {
+        const rawBody = req.body.toString('utf-8');
+        req.rawBody = rawBody;
+        req.body = JSON.parse(rawBody);
+      }
+    } catch (e) {
+      console.error('Failed to parse webhook body:', e);
+    }
+    next();
+  },
+  webhookRoutes
+);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);
