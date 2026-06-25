@@ -1,9 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import path from 'path';
 import { config } from './config';
-import { testConnection } from './db/connection';
+import { testConnection, pool } from './db/connection';
 import { globalRateLimit } from './middleware/rateLimit';
 import webhookRoutes from './routes/webhook';
 import proposalRoutes from './routes/proposals';
@@ -18,8 +17,7 @@ app.set('trust proxy', 1);
 // =============================================
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
-// TEMP: rate limit disabled for debugging body parser issue
-// app.use(globalRateLimit);
+app.use(globalRateLimit);
 
 // Parse JSON bodies (but keep raw for webhook signature verification)
 app.use(express.json({
@@ -76,6 +74,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // Start server
 // =============================================
 async function start() {
+  // Run migrations automatically
+  await runMigrations();
+
   // Test database connection
   const dbConnected = await testConnection();
   if (!dbConnected && !config.isDev) {
@@ -98,3 +99,114 @@ async function start() {
 start().catch(console.error);
 
 export default app;
+
+/**
+ * Run database migrations automatically on startup
+ */
+async function runMigrations() {
+  try {
+    // Create migrations tracking table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS _migrations (
+        id SERIAL PRIMARY KEY,
+        filename VARCHAR(255) UNIQUE NOT NULL,
+        executed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      )
+    `);
+
+    // Define migrations inline (avoid file system dependencies)
+    const migrations: Record<string, string> = {
+      '001_initial.sql': `
+CREATE TABLE IF NOT EXISTS leads (
+    id SERIAL PRIMARY KEY,
+    phone VARCHAR(20) UNIQUE NOT NULL,
+    name VARCHAR(255),
+    email VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'new'
+        CHECK (status IN ('new', 'chatting', 'qualified', 'converted', 'discarded')),
+    allow_contact BOOLEAN DEFAULT true,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS lead_profiles (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    investor_profile VARCHAR(30)
+        CHECK (investor_profile IN ('conservador', 'moderado', 'agressivo')),
+    experience TEXT,
+    goal TEXT,
+    timeline VARCHAR(30)
+        CHECK (timeline IN ('curto_prazo', 'medio_prazo', 'longo_prazo')),
+    monthly_value NUMERIC(15, 2),
+    income_range VARCHAR(50),
+    risk_tolerance INTEGER CHECK (risk_tolerance BETWEEN 1 AND 5),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS lead_interests (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    interest_type VARCHAR(50) NOT NULL,
+    interest_details TEXT,
+    score INTEGER DEFAULT 1,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS conversations (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    stage_id VARCHAR(50),
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS conversation_summaries (
+    id SERIAL PRIMARY KEY,
+    lead_id INTEGER NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    extracted_info JSONB DEFAULT '{}',
+    qualification_score NUMERIC(5, 2),
+    qualified_at TIMESTAMP WITH TIME ZONE,
+    proposal_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads(phone);
+CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
+CREATE INDEX IF NOT EXISTS idx_lead_profiles_lead ON lead_profiles(lead_id);
+CREATE INDEX IF NOT EXISTS idx_lead_interests_lead ON lead_interests(lead_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_lead ON conversations(lead_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_created ON conversations(lead_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_conversation_summaries_lead ON conversation_summaries(lead_id);
+`,
+    };
+
+    for (const [filename, sql] of Object.entries(migrations)) {
+      const { rows } = await pool.query(
+        'SELECT id FROM _migrations WHERE filename = $1',
+        [filename]
+      );
+
+      if (rows.length > 0) {
+        console.log(`  ⏭️ Migration ${filename} already executed, skipping.`);
+        continue;
+      }
+
+      console.log(`  🔄 Running migration: ${filename}...`);
+      await pool.query(sql);
+      await pool.query(
+        'INSERT INTO _migrations (filename) VALUES ($1)',
+        [filename]
+      );
+      console.log(`  ✅ Migration ${filename} completed.`);
+    }
+  } catch (error) {
+    console.error('❌ Migration error:', error);
+  }
+}
