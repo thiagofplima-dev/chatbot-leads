@@ -19,13 +19,29 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(globalRateLimit);
 
-// Parse JSON bodies (but keep raw for webhook signature verification)
+// Raw body parser for webhook (must come BEFORE express.json)
+app.use('/webhook', 
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  (req: any, _res, next) => {
+    try {
+      if (req.body && Buffer.isBuffer(req.body)) {
+        const rawBody = req.body.toString('utf-8');
+        req.rawBody = rawBody;
+        req.body = JSON.parse(rawBody);
+        (req as any)._body = true; // Prevent express.json from re-parsing
+      }
+    } catch (e) {
+      console.error('Failed to parse webhook body:', e);
+    }
+    next();
+  }
+);
+
+// Parse JSON bodies for all other routes
 app.use(express.json({
   verify: (req: any, _res, buf) => {
     req.rawBody = buf.toString();
   },
-  type: ['json', 'application/json', 'application/*+json'],
-  limit: '1mb',
 }));
 
 // =============================================
@@ -41,23 +57,8 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// WhatsApp webhook routes - use raw body parser to avoid body-parser issues
-app.use('/webhook', 
-  express.raw({ type: 'application/json', limit: '1mb' }),
-  (req: any, _res, next) => {
-    try {
-      if (req.body && Buffer.isBuffer(req.body)) {
-        const rawBody = req.body.toString('utf-8');
-        req.rawBody = rawBody;
-        req.body = JSON.parse(rawBody);
-      }
-    } catch (e) {
-      console.error('Failed to parse webhook body:', e);
-    }
-    next();
-  },
-  webhookRoutes
-);
+// WhatsApp webhook routes
+app.use('/webhook', webhookRoutes);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);
