@@ -23,10 +23,11 @@ router.post('/', webhookRateLimit, verifySignature, async (req: Request, res: Re
 
   try {
     const body = req.body;
+    console.log(`🔍 Webhook body type: ${typeof body}, keys: ${body ? Object.keys(body).join(',') : 'null'}`);
 
     // Validate webhook payload structure
     if (!body?.entry?.[0]?.changes?.[0]?.value) {
-      console.log('⚠️ Invalid webhook payload (no changes)');
+      console.log('⚠️ Invalid webhook payload structure:', JSON.stringify(body).substring(0, 300));
       return;
     }
 

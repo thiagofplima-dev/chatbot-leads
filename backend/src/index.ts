@@ -20,18 +20,29 @@ app.use(cors());
 app.use(globalRateLimit);
 
 // Raw body parser for webhook (must come BEFORE express.json)
+// Accepts any content type to handle various WhatsApp payload formats
 app.use('/webhook', 
-  express.raw({ type: 'application/json', limit: '1mb' }),
+  express.raw({ type: '*/*', limit: '1mb' }),
   (req: any, _res, next) => {
     try {
-      if (req.body && Buffer.isBuffer(req.body)) {
+      if (req.body && Buffer.isBuffer(req.body) && req.body.length > 0) {
         const rawBody = req.body.toString('utf-8');
+        console.log(`📦 Webhook raw body (${rawBody.length} chars): ${rawBody.substring(0, 200)}`);
         req.rawBody = rawBody;
-        req.body = JSON.parse(rawBody);
-        (req as any)._body = true; // Prevent express.json from re-parsing
+        
+        // Try to parse as JSON, but don't fail if it's not
+        try {
+          req.body = JSON.parse(rawBody);
+          (req as any)._body = true;
+        } catch (jsonErr) {
+          // Body is not JSON - might be form-urlencoded or other format
+          console.log('⚠️ Webhook body is not JSON, keeping as raw string');
+          req.body = { raw: rawBody };
+          (req as any)._body = true;
+        }
       }
     } catch (e) {
-      console.error('Failed to parse webhook body:', e);
+      console.error('❌ Webhook body processing error:', e);
     }
     next();
   }
