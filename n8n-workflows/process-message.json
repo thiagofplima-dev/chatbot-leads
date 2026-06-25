@@ -8,98 +8,30 @@
       "typeVersion": 1.1,
       "position": [0, 300],
       "parameters": {
+        "httpMethod": "POST",
         "path": "process-message",
         "responseMode": "lastNode",
         "responseData": "allEntries",
-        "options": {
-          "rawBody": true
-        }
+        "options": {}
       },
       "webhookId": "process-message"
     },
     {
-      "id": "code-prepare",
-      "name": "Preparar Prompt",
+      "id": "code-process",
+      "name": "Processar com DeepSeek",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [300, 300],
       "parameters": {
         "language": "javascript",
-        "code": "// Build complete payload for DeepSeek API\nconst input = $input.first().json;\n\nconst leadName = input.leadName || 'Lead';\nconst message = input.message;\nconst history = input.conversationHistory || [];\nconst profile = input.currentProfile;\nconst interests = input.currentInterests || [];\n\nlet historyStr = '';\nfor (const msg of history) {\n  const role = msg.role === 'user' ? 'Cliente' : 'Assistente';\n  historyStr += `${role}: ${msg.content}\\n\\n`;\n}\n\nlet profileStr = '';\nif (profile) {\n  if (profile.investor_profile) profileStr += `- Perfil: ${profile.investor_profile}\\n`;\n  if (profile.goal) profileStr += `- Objetivo: ${profile.goal}\\n`;\n  if (profile.timeline) profileStr += `- Prazo: ${profile.timeline}\\n`;\n  if (profile.monthly_value) profileStr += `- Valor mensal: R$ ${profile.monthly_value}\\n`;\n}\n\nlet interestsStr = '';\nfor (const int of interests) {\n  interestsStr += `- ${int.interest_type}`;\n  if (int.interest_details) interestsStr += `: ${int.interest_details}`;\n  interestsStr += '\\n';\n}\n\nconst systemPrompt = `Você é um assistente de qualificação de leads da KEA Wealth Management, uma gestora de patrimônio brasileira.\n\nSEU PAPEL:\n- Conduza uma conversa natural e profissional\n- Apresente os serviços da KEA conforme o interesse do lead\n- Extraia informações qualificadoras de forma natural\n\nREGRAS:\n1. Seja cordial e profissional\n2. NÃO invente informações sobre a KEA\n3. A cada resposta, extraia dados do lead\n4. Quando tiver informações suficientes, qualifique o lead\n\nFORMATO DE RESPOSTA:\nVocê DEVE responder APENAS com um JSON neste formato:\\n{\\n  \"message\": \"sua resposta amigável para o lead\",\\n  \"stage\": \"welcome | presentation | investor_profile | financial_goal | contact_info | qualification\",\\n  \"extractedData\": {\\n    \"name\": null,\\n    \"email\": null,\\n    \"investor_profile\": null,\\n    \"experience\": null,\\n    \"goal\": null,\\n    \"timeline\": null,\\n    \"monthly_value\": null,\\n    \"interest\": null,\\n    \"interest_details\": null,\\n    \"allow_contact\": null\\n  },\\n  \"qualified\": false,\\n  \"qualificationScore\": 0,\\n  \"action\": \"continue | generate_proposal | notify_team\"\\n}\\n\\nPreencha extractedData SOMENTE com campos que o lead mencionou explicitamente.\\nMarque qualified=true APENAS se você já tiver: nome, interesse em algum serviço, e perfil de investidor.\\nO qualificationScore é a soma: investor_profile=2pts, monthly_value=3pts, interest=1pt, goal=1pt. Mínimo 4pts para qualificar.\\nSe qualified=true e action=generate_proposal, uma proposta será gerada automaticamente!`;\n\nconst userPrompt = `Histórico da conversa:\\n${historyStr}\\n\\n---\\n\\nPerfil atual do lead:\\n${profileStr}\\n\\nInteresses atuais:\\n${interestsStr}\\n\\n---\\n\\nNova mensagem do lead (${leadName}):\\n${message}\\n\\n---\\n\\nResponda no formato JSON especificado.`;\n\nreturn {\n  leadId: input.leadId,\n  phone: input.phone,\n  leadName: leadName,\n  deepseekBody: JSON.stringify({\n    model: \"deepseek-chat\",\n    temperature: 0.7,\n    max_tokens: 1000,\n    messages: [\n      { role: \"system\", content: systemPrompt },\n      { role: \"user\", content: userPrompt }\n    ]\n  })\n};"
-      }
-    },
-    {
-      "id": "ai-process",
-      "name": "DeepSeek API",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [600, 300],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.deepseek.com/v1/chat/completions",
-        "authentication": "none",
-        "sendBody": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer sk-948dd4228f944335bf1597c161a1fda1"
-            }
-          ]
-        },
-        "bodyParameters": {
-          "parameters": [
-            { "name": "model", "value": "deepseek-chat" },
-            { "name": "temperature", "value": 0.7 },
-            { "name": "max_tokens", "value": 1000 },
-            { "name": "messages", "value": "=[\n  {\n    \"role\": \"system\",\n    \"content\": \"Você é um assistente de qualificação de leads da KEA Wealth Management, uma gestora de patrimônio brasileira.\\n\\nSEU PAPEL:\\n- Conduza uma conversa natural e profissional\\n- Apresente os serviços da KEA conforme o interesse do lead\\n- Extraia informações qualificadoras de forma natural\\n\\nREGRAS:\\n1. Seja cordial e profissional\\n2. NÃO invente informações sobre a KEA\\n3. A cada resposta, extraia dados do lead\\n4. Quando tiver informações suficientes, qualifique o lead\\n\\nFORMATO DE RESPOSTA:\\nVocê DEVE responder APENAS com um JSON neste formato:\\n{\\n  \\\"message\\\": \\\"sua resposta amigável para o lead\\\",\\n  \\\"stage\\\": \\\"welcome | presentation | investor_profile | financial_goal | contact_info | qualification\\\",\\n  \\\"extractedData\\\": {\\n    \\\"name\\\": null,\\n    \\\"email\\\": null,\\n    \\\"investor_profile\\\": null,\\n    \\\"experience\\\": null,\\n    \\\"goal\\\": null,\\n    \\\"timeline\\\": null,\\n    \\\"monthly_value\\\": null,\\n    \\\"interest\\\": null,\\n    \\\"interest_details\\\": null,\\n    \\\"allow_contact\\\": null\\n  },\\n  \\\"qualified\\\": false,\\n  \\\"qualificationScore\\\": 0,\\n  \\\"action\\\": \\\"continue | generate_proposal | notify_team\\\"\\n}\\n\\nPreencha extractedData SOMENTE com campos que o lead mencionou explicitamente.\\nMarque qualified=true APENAS se você já tiver: nome, interesse em algum serviço, e perfil de investidor.\\nO qualificationScore é a soma: investor_profile=2pts, monthly_value=3pts, interest=1pt, goal=1pt. Mínimo 4pts para qualificar.\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `Histórico da conversa:\\n${{\\$json.historyStr}}\\n\\n---\\n\\nPerfil atual do lead:\\n${{\\$json.profileStr}}\\n\\nInteresses atuais:\\n${{\\$json.interestsStr}}\\n\\n---\\n\\nNova mensagem do lead (${{\\$json.leadName}}):\\n${{\\$json.message}}`\n  }\n]" }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "code-parse",
-      "name": "Parsear Resposta",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [900, 300],
-      "parameters": {
-        "language": "javascript",
-        "code": "// Parse the JSON response from DeepSeek HTTP API\nconst rawResponse = $input.first().json;\n\nlet parsed;\ntry {\n  // DeepSeek API returns { choices: [{ message: { content: \"...\" } }] }\n  const content = rawResponse.choices?.[0]?.message?.content || rawResponse.response || rawResponse.output;\n  parsed = JSON.parse(content);\n} catch (e) {\n  // If parsing fails, wrap the text in a basic response\n  const text = rawResponse.choices?.[0]?.message?.content || rawResponse.response || 'Desculpe, não entendi. Pode repetir?';\n  parsed = {\n    message: text,\n    stage: 'conversation',\n    extractedData: {},\n    qualified: false,\n    qualificationScore: 0,\n    action: 'continue'\n  };\n}\n\nreturn {\n  message: parsed.message,\n  stage: parsed.stage || 'conversation',\n  qualified: parsed.qualified || false,\n  qualificationScore: parsed.qualificationScore || 0,\n  action: parsed.action || 'continue',\n  extractedData: parsed.extractedData || {},\n  metadata: {\n    leadId: $json.leadId,\n    phone: $json.phone\n  }\n};"
-      }
-    },
-    {
-      "id": "respond-webhook",
-      "name": "Responder ao Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1200, 300],
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}"
+        "code": "const input = $input.first().json;\nconst leadName = input.leadName || 'Lead';\nconst history = input.conversationHistory || [];\nconst profile = input.currentProfile;\nconst interests = input.currentInterests || [];\n\nlet historyStr = '';\nfor (const msg of history) {\n  historyStr += `${msg.role === 'user' ? 'Cliente' : 'Assistente'}: ${msg.content}\\n`;\n}\n\nlet profileStr = '';\nif (profile) {\n  if (profile.investor_profile) profileStr += `- Perfil: ${profile.investor_profile}\\n`;\n  if (profile.goal) profileStr += `- Objetivo: ${profile.goal}\\n`;\n}\n\nlet interestsStr = '';\nfor (const int of interests) {\n  interestsStr += `- ${int.interest_type}\\n`;\n}\n\nconst systemPrompt = `Voce e um assistente de qualificacao de leads da KEA Wealth Management. Conduza uma conversa natural, apresente os servicos, extraia dados do lead. Responda APENAS com JSON: {\"message\":\"resposta\",\"stage\":\"welcome|presentation|investor_profile|financial_goal|qualification\",\"extractedData\":{\"name\":null,\"interest\":null,\"investor_profile\":null,\"goal\":null,\"monthly_value\":null},\"qualified\":false,\"qualificationScore\":0,\"action\":\"continue|generate_proposal\"}. Score: investor_profile=2, monthly_value=3, interest=1, goal=1. Min 4 pts para qualificar.`;\n\nconst userPrompt = `Historico:\\n${historyStr}\\nPerfil: ${profileStr}\\nInteresses: ${interestsStr}\\nMensagem de ${leadName}:\\n${input.message}`;\n\nconst httpReq = await $http.post('https://api.deepseek.com/v1/chat/completions', {\n  model: 'deepseek-chat',\n  temperature: 0.7,\n  max_tokens: 1000,\n  messages: [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: userPrompt }\n  ]\n}, {\n  headers: { Authorization: 'Bearer sk-948dd4228f944335bf1597c161a1fda1' }\n});\n\nconst content = httpReq.choices[0].message.content;\nlet parsed;\ntry {\n  parsed = JSON.parse(content);\n} catch (e) {\n  parsed = { message: content, stage: 'conversation', extractedData: {}, qualified: false, qualificationScore: 0, action: 'continue' };\n}\n\nreturn {\n  message: parsed.message,\n  stage: parsed.stage || 'conversation',\n  qualified: parsed.qualified || false,\n  qualificationScore: parsed.qualificationScore || 0,\n  action: parsed.action || 'continue',\n  extractedData: parsed.extractedData || {},\n  metadata: { leadId: input.leadId, phone: input.phone }\n};"
       }
     }
   ],
   "connections": {
     "Webhook - Receber Mensagem": {
       "main": [
-        [{ "node": "Preparar Prompt", "type": "main", "index": 0 }]
-      ]
-    },
-    "Preparar Prompt": {
-      "main": [
-        [{ "node": "DeepSeek API", "type": "main", "index": 0 }]
-      ]
-    },
-    "DeepSeek API": {
-      "main": [
-        [{ "node": "Parsear Resposta", "type": "main", "index": 0 }]
-      ]
-    },
-    "Parsear Resposta": {
-      "main": [
-        [{ "node": "Responder ao Webhook", "type": "main", "index": 0 }]
+        [{ "node": "Processar com DeepSeek", "type": "main", "index": 0 }]
       ]
     }
   },
