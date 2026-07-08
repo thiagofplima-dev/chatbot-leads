@@ -28,6 +28,12 @@ export const config = {
     apiKey: process.env.N8N_API_KEY || '',
   },
 
+  // Evolution API (WhatsApp QR Code)
+  evolution: {
+    apiUrl: process.env.EVOLUTION_API_URL || 'https://evolution-api.railway.internal',
+    apiKey: process.env.EVOLUTION_API_KEY || 'kea_evolution_2024',
+  },
+
   // DeepSeek AI
   deepseek: {
     apiKey: process.env.DEEPSEEK_API_KEY || 'sk-948dd4228f944335bf1597c161a1fda1',

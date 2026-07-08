@@ -5,6 +5,7 @@ import { config } from './config';
 import { testConnection, pool } from './db/connection';
 import { globalRateLimit } from './middleware/rateLimit';
 import webhookRoutes from './routes/webhook';
+import evolutionRoutes from './routes/evolution';
 import proposalRoutes from './routes/proposals';
 
 const app = express();
@@ -70,6 +71,9 @@ app.get('/health', (_req, res) => {
 
 // WhatsApp webhook routes
 app.use('/webhook', webhookRoutes);
+
+// Evolution API routes (WhatsApp QR Code)
+app.use('/evolution', evolutionRoutes);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);
