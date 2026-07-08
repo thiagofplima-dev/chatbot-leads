@@ -12,22 +12,27 @@ router.get('/qrcode', async (req: Request, res: Response) => {
     
     const result = await evolutionService.createInstance(instanceName);
     
-    if (result.qrcode) {
+    if (result.code) {
       res.json({
         success: true,
-        instanceName: result.instance.instanceName,
-        apikey: result.instance.apikey,
-        qrcode: result.qrcode.code,
-        qrcodeBase64: result.qrcode.base64,
+        instanceName,
+        qrcode: result.code,
+        qrcodeBase64: result.base64,
         message: 'Escaneie o QR Code com seu WhatsApp (Configurações → Aparelhos conectados → Escanear QR)',
       });
-    } else {
-      // Instance might already be connected
+    } else if (result.pairingCode) {
       res.json({
         success: true,
-        instanceName: result.instance.instanceName,
-        status: result.instance.status,
-        message: 'Instância já está conectada!',
+        instanceName,
+        pairingCode: result.pairingCode,
+        message: 'Use o código de pareamento no WhatsApp',
+      });
+    } else {
+      res.json({
+        success: true,
+        instanceName,
+        data: result,
+        message: 'Instância criada!',
       });
     }
   } catch (error: any) {

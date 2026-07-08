@@ -35,14 +35,21 @@ class EvolutionService {
   /**
    * Create a new WhatsApp instance and get QR Code
    */
-  async createInstance(instanceName: string = 'kea-chatbot'): Promise<EvolutionInstance> {
+  async createInstance(instanceName: string = 'kea-chatbot'): Promise<any> {
     try {
-      const response = await axios.post<EvolutionInstance>(
+      // Step 1: Create instance
+      await axios.post(
         `${this.apiUrl}/instance/create`,
         {
           instanceName,
-          qrcode: true,
+          integration: 'WHATSAPP_BAILEYS',
         },
+        { headers: this.headers, timeout: 30000 }
+      );
+
+      // Step 2: Connect to get QR Code
+      const response = await axios.get(
+        `${this.apiUrl}/instance/connect/${instanceName}`,
         { headers: this.headers, timeout: 30000 }
       );
       return response.data;
