@@ -37,15 +37,22 @@ class EvolutionService {
    */
   async createInstance(instanceName: string = 'kea-chatbot'): Promise<any> {
     try {
-      // Step 1: Create instance
-      await axios.post(
-        `${this.apiUrl}/instance/create`,
-        {
-          instanceName,
-          integration: 'WHATSAPP-BAILEYS',
-        },
-        { headers: this.headers, timeout: 30000 }
-      );
+      // Step 1: Try to create instance (may fail if already exists)
+      try {
+        await axios.post(
+          `${this.apiUrl}/instance/create`,
+          {
+            instanceName,
+            integration: 'WHATSAPP-BAILEYS',
+          },
+          { headers: this.headers, timeout: 30000 }
+        );
+      } catch (createErr: any) {
+        // Ignore "already in use" error
+        if (!createErr.response?.data?.response?.message?.[0]?.includes('already in use')) {
+          throw createErr;
+        }
+      }
 
       // Step 2: Connect to get QR Code
       const response = await axios.get(
