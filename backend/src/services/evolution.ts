@@ -42,7 +42,7 @@ class EvolutionService {
         `${this.apiUrl}/instance/create`,
         {
           instanceName,
-          integration: 'WHATSAPP_BAILEYS',
+          integration: 'WHATSAPP-BAILEYS',
         },
         { headers: this.headers, timeout: 30000 }
       );
