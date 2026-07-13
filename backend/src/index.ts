@@ -7,6 +7,7 @@ import { globalRateLimit } from './middleware/rateLimit';
 import webhookRoutes from './routes/webhook';
 import evolutionRoutes from './routes/evolution';
 import pairingRoutes from './routes/pairing';
+import viewRoutes from './routes/view';
 import proposalRoutes from './routes/proposals';
 
 const app = express();
@@ -78,6 +79,9 @@ app.use('/evolution', evolutionRoutes);
 
 // WhatsApp pairing code route
 app.use('/pairing', pairingRoutes);
+
+// QR Code viewer page
+app.use('/view', viewRoutes);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);
