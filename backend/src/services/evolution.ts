@@ -164,6 +164,28 @@ class EvolutionService {
       throw error;
     }
   }
+
+  /**
+   * Set webhook for instance to receive messages
+   */
+  async setWebhook(instanceName: string = 'kea-whatsapp'): Promise<void> {
+    try {
+      const webhookUrl = `${config.whatsapp.baseUrl?.replace('graph.facebook.com', 'chatbot-leads-production.up.railway.app') || 'https://chatbot-leads-production.up.railway.app'}/evolution/webhook`;
+      
+      await axios.post(
+        `${this.apiUrl}/instance/setWebhook/${instanceName}`,
+        {
+          url: webhookUrl,
+          enabled: true,
+          events: ['MESSAGES_UPSERT', 'MESSAGES_SET', 'SEND_MESSAGE'],
+        },
+        { headers: this.headers, timeout: 15000 }
+      );
+      console.log(`✅ Webhook configured for ${instanceName} -> ${webhookUrl}`);
+    } catch (error: any) {
+      console.error('❌ Evolution API webhook error:', error.response?.data || error.message);
+    }
+  }
 }
 
 export const evolutionService = new EvolutionService();

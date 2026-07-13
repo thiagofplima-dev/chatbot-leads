@@ -62,6 +62,19 @@ router.get('/status', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /evolution/setup - Configure webhook for a connected instance
+ */
+router.post('/setup', async (req: Request, res: Response) => {
+  try {
+    const instanceName = (req.body.instance as string) || 'kea-whatsapp';
+    await evolutionService.setWebhook(instanceName);
+    res.json({ success: true, message: `Webhook configurado para ${instanceName}` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /evolution/logout - Disconnect WhatsApp
  */
 router.post('/logout', async (req: Request, res: Response) => {
