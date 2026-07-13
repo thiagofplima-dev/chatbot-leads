@@ -6,6 +6,7 @@ import { testConnection, pool } from './db/connection';
 import { globalRateLimit } from './middleware/rateLimit';
 import webhookRoutes from './routes/webhook';
 import evolutionRoutes from './routes/evolution';
+import pairingRoutes from './routes/pairing';
 import proposalRoutes from './routes/proposals';
 
 const app = express();
@@ -74,6 +75,9 @@ app.use('/webhook', webhookRoutes);
 
 // Evolution API routes (WhatsApp QR Code)
 app.use('/evolution', evolutionRoutes);
+
+// WhatsApp pairing code route
+app.use('/pairing', pairingRoutes);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);

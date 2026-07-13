@@ -135,6 +135,35 @@ class EvolutionService {
       console.error('❌ Evolution API delete error:', error.response?.data || error.message);
     }
   }
+
+  /**
+   * Create pairing code instead of QR Code
+   */
+  async createPairingCode(instanceName: string, phone: string): Promise<any> {
+    try {
+      // Create instance if not exists
+      try {
+        await axios.post(
+          `${this.apiUrl}/instance/create`,
+          { instanceName, integration: 'WHATSAPP-BAILEYS' },
+          { headers: this.headers, timeout: 30000 }
+        );
+      } catch (e: any) {
+        if (!e.response?.data?.response?.message?.[0]?.includes('already in use')) throw e;
+      }
+      
+      // Request pairing code
+      const response = await axios.post(
+        `${this.apiUrl}/instance/connect/${instanceName}`,
+        { number: phone },
+        { headers: this.headers, timeout: 30000 }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Evolution API pairing error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
 }
 
 export const evolutionService = new EvolutionService();
