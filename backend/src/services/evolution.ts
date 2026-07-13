@@ -173,22 +173,19 @@ class EvolutionService {
     try {
       const webhookUrl = 'https://chatbot-leads-production.up.railway.app/evolution/webhook';
       
-      await axios.post(
+      const response = await axios.post(
         `${this.apiUrl}/webhook/instance`,
         {
+          instanceName,
           url: webhookUrl,
           enabled: true,
           webhook_by_events: false,
           webhook_base64: false,
-          events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'SEND_MESSAGE', 'CONNECTION_UPDATE'],
+          events: ['MESSAGES_UPSERT', 'SEND_MESSAGE', 'CONNECTION_UPDATE'],
         },
-        { 
-          headers: this.headers, 
-          timeout: 15000,
-          params: { instanceName }
-        }
+        { headers: this.headers, timeout: 15000 }
       );
-      console.log(`✅ Webhook configured for ${instanceName} -> ${webhookUrl}`);
+      console.log(`✅ Webhook configured for ${instanceName}`, JSON.stringify(response.data));
     } catch (error: any) {
       console.error('❌ Evolution API webhook error:', error.response?.data || error.message);
       throw error;
