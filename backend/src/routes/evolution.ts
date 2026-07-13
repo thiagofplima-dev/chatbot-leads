@@ -75,6 +75,19 @@ router.post('/logout', async (req: Request, res: Response) => {
 });
 
 /**
+ * DELETE /evolution/delete - Delete instance completely
+ */
+router.delete('/delete', async (req: Request, res: Response) => {
+  try {
+    const instanceName = (req.query.instance as string) || 'kea-chatbot';
+    await evolutionService.deleteInstance(instanceName);
+    res.json({ success: true, message: `Instância ${instanceName} deletada` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /evolution/webhook - Receive incoming messages from Evolution API
  */
 router.post('/webhook', async (req: Request, res: Response) => {

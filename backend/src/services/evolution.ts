@@ -120,6 +120,21 @@ class EvolutionService {
       console.error('❌ Evolution API logout error:', error.response?.data || error.message);
     }
   }
+
+  /**
+   * Delete an instance completely
+   */
+  async deleteInstance(instanceName: string = 'kea-chatbot'): Promise<void> {
+    try {
+      await axios.delete(
+        `${this.apiUrl}/instance/delete/${instanceName}`,
+        { headers: this.headers, timeout: 10000 }
+      );
+      console.log(`✅ Instance ${instanceName} deleted`);
+    } catch (error: any) {
+      console.error('❌ Evolution API delete error:', error.response?.data || error.message);
+    }
+  }
 }
 
 export const evolutionService = new EvolutionService();
