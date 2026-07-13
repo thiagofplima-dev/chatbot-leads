@@ -62,6 +62,19 @@ router.get('/status', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /evolution/find/:instance - Find webhook config for an instance
+ */
+router.get('/find/:instance', async (req: Request, res: Response) => {
+  try {
+    const instanceName = req.params.instance || 'kea-whatsapp';
+    const result = await evolutionService.findWebhook(instanceName);
+    res.json({ success: true, webhook: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /evolution/setup - Configure webhook for a connected instance
  */
 router.post('/setup', async (req: Request, res: Response) => {

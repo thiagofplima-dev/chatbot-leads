@@ -167,23 +167,48 @@ class EvolutionService {
 
   /**
    * Set webhook for instance to receive messages
+   * Endpoint correto: POST {baseUrl}/webhook/instance
    */
   async setWebhook(instanceName: string = 'kea-whatsapp'): Promise<void> {
     try {
-      const webhookUrl = `${config.whatsapp.baseUrl?.replace('graph.facebook.com', 'chatbot-leads-production.up.railway.app') || 'https://chatbot-leads-production.up.railway.app'}/evolution/webhook`;
+      const webhookUrl = 'https://chatbot-leads-production.up.railway.app/evolution/webhook';
       
       await axios.post(
-        `${this.apiUrl}/instance/setWebhook/${instanceName}`,
+        `${this.apiUrl}/webhook/instance`,
         {
           url: webhookUrl,
           enabled: true,
-          events: ['MESSAGES_UPSERT', 'MESSAGES_SET', 'SEND_MESSAGE'],
+          webhook_by_events: false,
+          webhook_base64: false,
+          events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'SEND_MESSAGE', 'CONNECTION_UPDATE'],
         },
-        { headers: this.headers, timeout: 15000 }
+        { 
+          headers: this.headers, 
+          timeout: 15000,
+          params: { instanceName }
+        }
       );
       console.log(`✅ Webhook configured for ${instanceName} -> ${webhookUrl}`);
     } catch (error: any) {
       console.error('❌ Evolution API webhook error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Find webhook configuration for an instance
+   * GET {baseUrl}/webhook/find/{instanceName}
+   */
+  async findWebhook(instanceName: string = 'kea-whatsapp'): Promise<any> {
+    try {
+      const response = await axios.get(
+        `${this.apiUrl}/webhook/find/${instanceName}`,
+        { headers: this.headers, timeout: 10000 }
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Evolution API find webhook error:', error.response?.data || error.message);
+      throw error;
     }
   }
 }
