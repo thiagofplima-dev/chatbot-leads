@@ -7,7 +7,7 @@ import { evolutionService } from '../services/evolution';
 
 const router = Router();
 
-router.post('/pairing', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const phone = req.body.phone?.replace(/\D/g, '') || '5511959464151';
     const instanceName = req.body.instance || 'kea-chatbot';
