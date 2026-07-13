@@ -109,13 +109,12 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
   try {
     const body = req.body;
-    console.log('📩 Evolution webhook received:', JSON.stringify(body).substring(0, 200));
+    console.log('📩 Evolution webhook received:', JSON.stringify(body).substring(0, 300));
 
     // Extract message from Evolution API format
     const data = body.data || body;
-    const message = data.message || data;
-    const remoteJid = message.key?.remoteJid || data.from;
-    const text = message.message?.conversation || message.message?.extendedTextMessage?.text || data.text || '';
+    const remoteJid = data.key?.remoteJid || data.from || '';
+    const text = data.message?.conversation || data.message?.extendedTextMessage?.text || data.text || '';
     const phone = remoteJid?.replace(/[^0-9]/g, '')?.replace(/@.*$/, '') || '';
 
     if (!text || !phone) {
