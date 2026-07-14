@@ -85,7 +85,7 @@ class EvolutionService {
   /**
    * Send a text message via Evolution API
    */
-  async sendText(phone: string, message: string, instanceName: string = 'kea-chatbot'): Promise<boolean> {
+  async sendText(phone: string, message: string, instanceName: string = 'mive-bot'): Promise<boolean> {
     try {
       // Format phone: remove non-digits, add DDI if needed
       const cleanPhone = phone.replace(/\D/g, '');

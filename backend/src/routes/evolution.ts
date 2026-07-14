@@ -125,6 +125,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
     console.log('📩 Evolution webhook received:', JSON.stringify(body).substring(0, 300));
 
     // Extract message from Evolution API format
+    const instanceName = body.instance || 'mive-bot';
     const data = body.data || body;
     const remoteJid = data.key?.remoteJid || data.from || '';
     const text = data.message?.conversation || data.message?.extendedTextMessage?.text || data.text || '';
@@ -189,8 +190,8 @@ router.post('/webhook', async (req: Request, res: Response) => {
         [leadId, aiResponse.message, aiResponse.stage || null, JSON.stringify(aiResponse.metadata || {})]
       );
 
-      // Send response via Evolution API
-      await evolutionService.sendText(phone, aiResponse.message);
+      // Send response via Evolution API using the same instance that received the message
+      await evolutionService.sendText(phone, aiResponse.message, instanceName);
     }
   } catch (error) {
     console.error('❌ Error processing Evolution webhook:', error);
