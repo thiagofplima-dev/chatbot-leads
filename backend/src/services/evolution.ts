@@ -98,9 +98,9 @@ class EvolutionService {
         {
           number: formattedPhone,
           text: message,
-          delay: 1000,
+          delay: 500,
         },
-        { headers: this.headers, timeout: 15000 }
+        { headers: this.headers, timeout: 60000 }
       );
       console.log(`✅ Message sent:`, response.data?.key?.id || 'ok');
       return true;
