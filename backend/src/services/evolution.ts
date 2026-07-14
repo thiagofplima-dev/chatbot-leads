@@ -91,7 +91,9 @@ class EvolutionService {
       const cleanPhone = phone.replace(/\D/g, '');
       const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
 
-      await axios.post(
+      console.log(`📤 Sending to ${formattedPhone} via instance ${instanceName}`);
+
+      const response = await axios.post(
         `${this.apiUrl}/message/sendText/${instanceName}`,
         {
           number: formattedPhone,
@@ -100,6 +102,7 @@ class EvolutionService {
         },
         { headers: this.headers, timeout: 15000 }
       );
+      console.log(`✅ Message sent:`, response.data?.key?.id || 'ok');
       return true;
     } catch (error: any) {
       console.error('❌ Evolution API send error:', error.response?.data || error.message);
