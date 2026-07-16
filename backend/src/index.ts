@@ -4,10 +4,7 @@ import helmet from 'helmet';
 import { config } from './config';
 import { testConnection, pool } from './db/connection';
 import { globalRateLimit } from './middleware/rateLimit';
-import webhookRoutes from './routes/webhook';
-import evolutionRoutes from './routes/evolution';
-import pairingRoutes from './routes/pairing';
-import viewRoutes from './routes/view';
+import uazapiRoutes from './routes/uazapi';
 import proposalRoutes from './routes/proposals';
 
 const app = express();
@@ -22,36 +19,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(globalRateLimit);
 
-// Raw body parser for webhook (must come BEFORE express.json)
-// Accepts any content type to handle various WhatsApp payload formats
-app.use('/webhook', 
-  express.raw({ type: '*/*', limit: '1mb' }),
-  (req: any, _res, next) => {
-    try {
-      if (req.body && Buffer.isBuffer(req.body) && req.body.length > 0) {
-        const rawBody = req.body.toString('utf-8');
-        console.log(`📦 Webhook raw body (${rawBody.length} chars): ${rawBody.substring(0, 200)}`);
-        req.rawBody = rawBody;
-        
-        // Try to parse as JSON, but don't fail if it's not
-        try {
-          req.body = JSON.parse(rawBody);
-          (req as any)._body = true;
-        } catch (jsonErr) {
-          // Body is not JSON - might be form-urlencoded or other format
-          console.log('⚠️ Webhook body is not JSON, keeping as raw string');
-          req.body = { raw: rawBody };
-          (req as any)._body = true;
-        }
-      }
-    } catch (e) {
-      console.error('❌ Webhook body processing error:', e);
-    }
-    next();
-  }
-);
-
-// Parse JSON bodies for all other routes
+// Parse JSON bodies
 app.use(express.json({
   verify: (req: any, _res, buf) => {
     req.rawBody = buf.toString();
@@ -71,17 +39,8 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// WhatsApp webhook routes
-app.use('/webhook', webhookRoutes);
-
-// Evolution API routes (WhatsApp QR Code)
-app.use('/evolution', evolutionRoutes);
-
-// WhatsApp pairing code route
-app.use('/pairing', pairingRoutes);
-
-// QR Code viewer page
-app.use('/view', viewRoutes);
+// UazAPI routes (WhatsApp API)
+app.use('/uazapi', uazapiRoutes);
 
 // Proposal routes
 app.use('/propostas', proposalRoutes);

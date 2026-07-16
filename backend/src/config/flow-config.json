@@ -1,6 +1,6 @@
 {
   "brand": {
-    "name": "KEA Wealth Management",
+    "name": "Mive Wealth",
     "description": "Gestão de patrimônio e private banking com soluções personalizadas",
     "tone": "profissional e acolhedor",
     "presentation_text": "Somos especialistas em gestão de patrimônio, ajudando nossos clientes a proteger, organizar e expandir seus investimentos com estratégias sob medida."
@@ -16,14 +16,14 @@
     {
       "id": "welcome",
       "name": "Boas-vindas",
-      "prompt_instruction": "Apresente-se como assistente da KEA Wealth Management. Cumprimente o lead e pergunte o nome dele de forma natural.",
+      "prompt_instruction": "Apresente-se como assistente da Mive Wealth. Cumprimente o lead e pergunte o nome dele de forma natural.",
       "fields_to_extract": ["name"],
       "next": "presentation"
     },
     {
       "id": "presentation",
       "name": "Apresentar Produtos",
-      "prompt_instruction": "Apresente brevemente os serviços da KEA (listados no config). Pergunte qual deles desperta mais interesse no lead. Se o lead já mencionou algo, aprofunde nesse tópico.",
+      "prompt_instruction": "Apresente brevemente os serviços da Mive Wealth (listados no config). Pergunte qual deles desperta mais interesse no lead. Se o lead já mencionou algo, aprofunde nesse tópico.",
       "fields_to_extract": ["interest", "interest_details"],
       "next": "investor_profile"
     },

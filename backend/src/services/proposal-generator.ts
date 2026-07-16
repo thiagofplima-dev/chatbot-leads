@@ -50,7 +50,7 @@ class ProposalGenerator {
       month: 'long',
       year: 'numeric',
     });
-    const assessor = process.env.PROPOSAL_ADVISOR_NAME || 'Equipe KEA';
+    const assessor = process.env.PROPOSAL_ADVISOR_NAME || 'Equipe Mive Wealth';
 
     // Map investor profile to risk level (1-5)
     const riskMap: Record<string, number> = {

@@ -9,29 +9,12 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   isDev: (process.env.NODE_ENV || 'development') === 'development',
 
-  // WhatsApp Business API (Meta)
-  whatsapp: {
-    token: process.env.WHATSAPP_TOKEN || '',
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || 'meu_token_seguro',
-    apiVersion: process.env.WHATSAPP_API_VERSION || 'v21.0',
-    businessAccountId: process.env.WHATSAPP_BUSINESS_ACCOUNT_ID || '',
-    get baseUrl() {
-      return `https://graph.facebook.com/${this.apiVersion}/${this.phoneNumberId}`;
-    },
-    appSecret: process.env.WHATSAPP_APP_SECRET || '',
-  },
-
-  // n8n
-  n8n: {
-    webhookUrl: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook',
-    apiKey: process.env.N8N_API_KEY || '',
-  },
-
-  // Evolution API (WhatsApp QR Code)
-  evolution: {
-    apiUrl: process.env.EVOLUTION_API_URL || 'https://evolution-api.railway.internal',
-    apiKey: process.env.EVOLUTION_API_KEY || 'kea_evolution_2024',
+  // UazAPI (WhatsApp API)
+  uazapi: {
+    baseUrl: process.env.UAZAPI_BASE_URL || 'https://mivecw.uazapi.com',
+    adminToken: process.env.UAZAPI_ADMIN_TOKEN || '',
+    instanceToken: process.env.UAZAPI_INSTANCE_TOKEN || '',
+    webhookBaseUrl: process.env.UAZAPI_WEBHOOK_BASE_URL || 'https://chatbot-leads-production.up.railway.app',
   },
 
   // DeepSeek AI
