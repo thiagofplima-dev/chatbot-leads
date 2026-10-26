@@ -350,17 +350,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         [leadId, aiResponse.message, aiResponse.stage || null, JSON.stringify(aiResponse.metadata || {})]
       );
 
-      // Update lead info if extracted
-      if (aiResponse.extractedData) {
-        await updateLeadData(leadId, aiResponse.extractedData);
-      }
-
-      // Handle qualification
-      if (aiResponse.qualified !== undefined) {
-        await handleQualification(leadId, aiResponse);
-      }
-
-      // Send response back via UazAPI
+      // Send response back via UazAPI (before lead updates, so a DB error never blocks the reply)
       // Try to find the instance token from store, or use env fallback
       const instanceName = body.instance || body.BaseUrl?.replace('https://', '').replace('.uazapi.com', '') || '';
       let token = instanceStore.get(instanceName);
@@ -378,6 +368,20 @@ router.post('/webhook', async (req: Request, res: Response) => {
         }
       } else {
         console.error('❌ [UazAPI] No token found to send response. Store tokens:', [...instanceStore.entries()].map(([k]) => k).join(','));
+      }
+
+      try {
+        // Update lead info if extracted
+        if (aiResponse.extractedData) {
+          await updateLeadData(leadId, aiResponse.extractedData);
+        }
+
+        // Handle qualification
+        if (aiResponse.qualified !== undefined) {
+          await handleQualification(leadId, aiResponse);
+        }
+      } catch (error) {
+        console.error(`❌ [UazAPI] Error updating lead ${leadId} data:`, error);
       }
     }
   } catch (error) {
@@ -430,9 +434,49 @@ router.delete('/delete', async (req: Request, res: Response) => {
 // Helper functions (reused from webhook.ts logic)
 // =============================================
 
+const INVESTOR_PROFILE_ALIASES: Record<string, string> = {
+  conservador: 'conservador',
+  moderado: 'moderado',
+  agressivo: 'agressivo',
+  arrojado: 'agressivo',
+  sofisticado: 'agressivo',
+};
+
+const TIMELINE_VALUES = ['curto_prazo', 'medio_prazo', 'longo_prazo'];
+
+// Map AI-extracted values onto the values allowed by the DB CHECK constraints (anything else → null)
+function normalizeInvestorProfile(value: any): string | null {
+  if (typeof value !== 'string') return null;
+  const key = value.trim().toLowerCase();
+  return INVESTOR_PROFILE_ALIASES[key] || null;
+}
+
+function normalizeTimeline(value: any): string | null {
+  if (typeof value !== 'string') return null;
+  const key = value.trim().toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, '_');
+  return TIMELINE_VALUES.includes(key) ? key : null;
+}
+
+function normalizeMonthlyValue(value: any): number | null {
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
 async function updateLeadData(leadId: number, data: any) {
   const { query } = await import('../db/connection');
-  const { name, email, investor_profile, experience, goal, timeline, monthly_value, interest, interest_details, allow_contact } = data;
+  const { name, email, experience, goal, interest, interest_details, allow_contact } = data;
+  const investor_profile = normalizeInvestorProfile(data.investor_profile);
+  const timeline = normalizeTimeline(data.timeline);
+  const monthly_value = normalizeMonthlyValue(data.monthly_value);
+
+  if (data.investor_profile && !investor_profile) {
+    console.warn(`⚠️ [UazAPI] Ignoring invalid investor_profile for lead ${leadId}: "${data.investor_profile}"`);
+  }
+  if (data.timeline && !timeline) {
+    console.warn(`⚠️ [UazAPI] Ignoring invalid timeline for lead ${leadId}: "${data.timeline}"`);
+  }
 
   // Update lead basic info
   const updates: string[] = [];
