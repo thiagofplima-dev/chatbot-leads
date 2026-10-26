@@ -405,7 +405,7 @@ router.post('/webhook', async (req: Request, res: Response) => {
         const sent = await uazapiService.sendText(
           token,
           replyTo,
-          'Olá! Recebemos sua mensagem, mas tivemos uma instabilidade momentânea. Um consultor da Mive Wealth vai dar continuidade ao seu atendimento em breve. 🙏'
+          'Agradeço sua mensagem. Tivemos uma breve instabilidade, e um banker da Mive Wealth dará continuidade ao seu atendimento em instantes.'
         );
         console.log(sent ? `🛟 [UazAPI] Fallback reply sent to ${replyTo}` : `❌ [UazAPI] Fallback reply failed for ${replyTo}`);
       }
