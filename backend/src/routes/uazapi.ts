@@ -202,8 +202,12 @@ router.post('/webhook', async (req: Request, res: Response) => {
   // Always respond 200 immediately
   res.sendStatus(200);
 
+  const body = req.body;
+  // Set once a lead message is validated; used by the catch block to avoid leaving the lead without a reply
+  let replyTo = '';
+  let replied = false;
+
   try {
-    const body = req.body;
     console.log('📩 [UazAPI] Webhook received:', JSON.stringify(body).substring(0, 1500));
 
     // Handle UazAPI webhook format (from Bubble plugin)
@@ -238,18 +242,30 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
     const phone = phoneRaw.replace(/[^0-9]/g, '').replace(/@.*$/, '') || '';
 
-    // Extract text from various possible locations
-    const text =
-      rawData.text ||
-      rawData.message?.conversation ||
-      rawData.message?.extendedTextMessage?.text ||
-      rawData.message?.imageMessage?.caption ||
-      rawData.message?.videoMessage?.caption ||
-      rawData.message?.documentMessage?.caption ||
-      body.chat?.text ||
-      body.text ||
-      rawData.content ||
-      '';
+    // Extract text from various possible locations (only string values — media messages carry objects here)
+    const textCandidates = [
+      rawData.text,
+      rawData.message?.conversation,
+      rawData.message?.extendedTextMessage?.text,
+      rawData.message?.imageMessage?.caption,
+      rawData.message?.videoMessage?.caption,
+      rawData.message?.documentMessage?.caption,
+      rawData.caption,
+      rawData.content?.caption,
+      body.chat?.text,
+      body.text,
+      rawData.content,
+    ];
+    let text: string = textCandidates.find((t) => typeof t === 'string' && t.trim() !== '') || '';
+
+    // Media without text (audio, image, sticker...): still reply, so the lead is never left unanswered
+    if (!text) {
+      const mediaType = String(rawData.mediaType || rawData.messageType || rawData.type || '');
+      if (/audio|ptt|image|video|sticker|document/i.test(mediaType)) {
+        console.log(`📎 [UazAPI] Media message without text (type: ${mediaType})`);
+        text = `[O cliente enviou uma mensagem de mídia (${mediaType}) sem texto. Você não consegue ouvir áudios nem ver imagens: peça gentilmente que ele escreva a mensagem.]`;
+      }
+    }
 
     // Ignore messages sent by the API itself
     const fromMe = rawData.fromMe || rawData.key?.fromMe || body.chat?.fromMe || false;
@@ -271,11 +287,14 @@ router.post('/webhook', async (req: Request, res: Response) => {
         phoneRaw,
         eventType,
         bodyKeys: Object.keys(body).join(','),
+        messageKeys: Object.keys(rawData).join(','),
+        messageType: rawData.messageType || rawData.mediaType || rawData.type,
       });
       return;
     }
 
     console.log(`📩 [UazAPI] Message from ${phone}: "${text.substring(0, 100)}"`);
+    replyTo = phone;
 
     // Process with DeepSeek (same flow as Evolution API)
     const { deepseekService } = await import('../services/deepseek');
@@ -351,19 +370,11 @@ router.post('/webhook', async (req: Request, res: Response) => {
       );
 
       // Send response back via UazAPI (before lead updates, so a DB error never blocks the reply)
-      // Try to find the instance token from store, or use env fallback
-      const instanceName = body.instance || body.BaseUrl?.replace('https://', '').replace('.uazapi.com', '') || '';
-      let token = instanceStore.get(instanceName);
-
-      if (!token) {
-        // Fallback: use env variable or try common instance names
-        token = instanceStore.get('00PdbK') || instanceStore.get('uazapi-instance') || config.uazapi.instanceToken || '';
-      }
+      const token = resolveSendToken(body);
 
       if (token) {
-        instanceStore.set('00PdbK', token);
-        const sent = await uazapiService.sendText(token, phone, aiResponse.message);
-        if (sent) {
+        replied = await uazapiService.sendText(token, phone, aiResponse.message);
+        if (replied) {
           console.log(`✅ [UazAPI] Response sent to ${phone}`);
         }
       } else {
@@ -386,8 +397,37 @@ router.post('/webhook', async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error('❌ [UazAPI] Error processing webhook:', error);
+
+    // Last resort: never leave a lead without any reply
+    if (replyTo && !replied) {
+      const token = resolveSendToken(body);
+      if (token) {
+        const sent = await uazapiService.sendText(
+          token,
+          replyTo,
+          'Olá! Recebemos sua mensagem, mas tivemos uma instabilidade momentânea. Um consultor da Mive Wealth vai dar continuidade ao seu atendimento em breve. 🙏'
+        );
+        console.log(sent ? `🛟 [UazAPI] Fallback reply sent to ${replyTo}` : `❌ [UazAPI] Fallback reply failed for ${replyTo}`);
+      }
+    }
   }
 });
+
+/**
+ * Resolve the instance token used to send replies: by instance name from the webhook payload,
+ * falling back to the pre-loaded/env token
+ */
+function resolveSendToken(body: any): string {
+  const instanceName = body?.instance || body?.BaseUrl?.replace('https://', '').replace('.uazapi.com', '') || '';
+  const token =
+    instanceStore.get(instanceName) ||
+    instanceStore.get('00PdbK') ||
+    instanceStore.get('uazapi-instance') ||
+    config.uazapi.instanceToken ||
+    '';
+  if (token) instanceStore.set('00PdbK', token);
+  return token;
+}
 
 /**
  * POST /uazapi/logout - Disconnect WhatsApp instance
